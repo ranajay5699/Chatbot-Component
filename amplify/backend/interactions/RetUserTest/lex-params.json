@@ -1,0 +1,25 @@
+{
+    "resourceName": "RetUserTest",
+    "botName": "RetUserTest",
+    "intents": [
+        {
+            "slots": [
+                {
+                    "name": "na",
+                    "type": "AMAZON.Actor",
+                    "prompt": "what?",
+                    "required": false,
+                    "customType": false
+                }
+            ],
+            "utterances": [
+                "retuser"
+            ],
+            "intentName": "gibby_ReturnUser",
+            "newSlotTypes": []
+        }
+    ],
+    "outputVoice": false,
+    "sessionTimeout": "5",
+    "coppa": false
+}
