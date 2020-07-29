@@ -409,12 +409,11 @@ class ChatBot extends React.Component{
                 'No Interactions module found, please ensure @aws-amplify/interactions is imported'
             );
         }
-        console.log(input);
+        
         const response = await Interactions.send(
             this.props.botName,
             input
         );
-        console.log(response)
 
         if(response.sessionAttributes !== undefined){
             //Check setcookie sessionattribute here and setcookie
