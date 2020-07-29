@@ -311,7 +311,7 @@ class ChatBot extends React.Component{
                             data-test={`${chatBot.dialog}-${i}`}
                         >
                             {message}<br />
-                            <a target="_blank" href={URL}>{title}</a>
+                            <a target="_blank" rel="noopener noreferrer" href={URL}>{title}</a>
                         </div>
                     );
                 }else if(m.messageFormat === "ResponseCard"){

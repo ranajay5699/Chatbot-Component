@@ -3,6 +3,7 @@ import {
   Card, CardImg, CardBody,
   CardTitle, CardSubtitle, Button
 } from 'reactstrap';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import style from './ResponseCard.module.css';
 
 const ResponseCard = (props) => {
