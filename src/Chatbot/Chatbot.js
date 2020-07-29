@@ -10,23 +10,31 @@ import { Input, Button } from 'aws-amplify-react/lib-esm/AmplifyTheme';
 
 import { I18n } from '@aws-amplify/core';
 import { Interactions } from '@aws-amplify/interactions';
-import { ConsoleLogger as Logger } from '@aws-amplify/core';
 import { chatBot } from 'aws-amplify-react/lib-esm/Amplify-UI/data-test-attributes';
 import ResponseCard from './ResponseCard';
-const logger = new Logger('ChatBot');
 
 // @ts-ignore
 const styles = {
     itemMe: {
-        padding: 10,
         fontSize: 15,
-        color: 'gray',
+        color: 'black',
         marginTop: 4,
-        textAlign: 'right', 
+        textAlign: 'right',
+        backgroundColor: '#e0e0e0',
+        margin: '15px 0px 0 auto',
+        borderRadius: '4px',
+        padding: '5px',
+        maxWidth: '60%', 
     },
     itemBot: {
         fontSize: 15,
         textAlign: 'left',
+        color: 'white',
+        backgroundColor: '#16b',
+        margin: '15px auto 0 0px', 
+        borderRadius: '4px',
+        padding: '5px',
+        maxWidth: '60%',
     },
     list: {
         height: '100%',
@@ -118,6 +126,8 @@ class ChatBot extends React.Component{
         this.lexMessageGroup = this.lexMessageGroup.bind(this);
         this.setCookie = this.setCookie.bind(this);
         this.getCookie = this.getCookie.bind(this);
+        this.lexResponseCard = this.lexResponseCard.bind(this);
+        this.BackgroundResponse = this.BackgroundResponse.bind(this);
     }
     
     async micButtonHandler() {
@@ -294,7 +304,6 @@ class ChatBot extends React.Component{
             } else {
                 if(m.messageFormat === "CustomPayload"){
                     const [message, title, URL] = m.message.split(";");
-                    console.log(message,title,URL);
                     return (
                         <div
                             key={i}
@@ -316,7 +325,8 @@ class ChatBot extends React.Component{
                                 title = {m.title}
                                 subtitle = {m.subTitle}
                                 imageUrl = {m.url}
-                                buttons = {m.buttons}    
+                                buttons = {m.buttons}
+                                handler = {this.BackgroundResponse}   
                             />
                         </div>
                     );
@@ -358,7 +368,7 @@ class ChatBot extends React.Component{
                 'No Interactions module found, please ensure @aws-amplify/interactions is imported'
             );
         }
-
+        
         const response = await Interactions.send(
             this.props.botName,
             this.state.inputText
@@ -382,25 +392,55 @@ class ChatBot extends React.Component{
                 response && { from: 'bot', message: response.message, messageFormat: response.messageFormat },
             ],
             inputText: '',
-        });
-        
-        if (response.responseCard !== undefined){
-            const title = (response.responseCard.genericAttachments[0].title) ? response.responseCard.genericAttachments[0].title : "";
-            const subTitle = (response.responseCard.genericAttachments[0].subTitle) ? response.responseCard.genericAttachments[0].subTitle : "" ;
-            const buttons = (response.responseCard.genericAttachments[0].buttons) ? response.responseCard.genericAttachments[0].buttons : "" ;
-            const url = (response.responseCard.genericAttachments[0].imageUrl) ? response.responseCard.genericAttachments[0].imageUrl : "";
-            
-            this.setState({
-                // @ts-ignore
-                dialog: [
-                    ...this.state.dialog,
-                    // @ts-ignore
-                    response && { from: 'bot', title: title, subTitle: subTitle, buttons: buttons, url: url, messageFormat: "ResponseCard" },
-                ],
-                inputText: '',
-            }); 
+            });
         }
-         
+        
+        //Only supports one ResponseCard for now
+        if (response.responseCard !== undefined){
+            this.lexResponseCard(response.responseCard);
+        }
+        
+        this.listItemsRef.current.scrollTop = this.listItemsRef.current.scrollHeight;
+    }
+
+    async BackgroundResponse(input){
+        if (!Interactions || typeof Interactions.send !== 'function') {
+            throw new Error(
+                'No Interactions module found, please ensure @aws-amplify/interactions is imported'
+            );
+        }
+        console.log(input);
+        const response = await Interactions.send(
+            this.props.botName,
+            input
+        );
+        console.log(response)
+
+        if(response.sessionAttributes !== undefined){
+            //Check setcookie sessionattribute here and setcookie
+            console.log(response.sessionAttributes);
+        
+        }
+
+        //Message Group Support
+        if (response.messageFormat === "Composite"){
+            this.lexMessageGroup(response)
+        }
+        else{
+           this.setState({
+            // @ts-ignore
+            dialog: [
+                ...this.state.dialog,
+                // @ts-ignore
+                response && { from: 'bot', message: response.message, messageFormat: response.messageFormat },
+            ],
+            inputText: '',
+            });
+        }
+        
+        //Only supports one ResponseCard for now
+        if (response.responseCard !== undefined){
+            this.lexResponseCard(response.responseCard);
         }
         
         this.listItemsRef.current.scrollTop = this.listItemsRef.current.scrollHeight;
@@ -421,6 +461,23 @@ class ChatBot extends React.Component{
             }); 
         });
         return
+    }
+
+    lexResponseCard(responseCard){
+        const title = (responseCard.genericAttachments[0].title) ? responseCard.genericAttachments[0].title : "";
+        const subTitle = (responseCard.genericAttachments[0].subTitle) ? responseCard.genericAttachments[0].subTitle : "" ;
+        const buttons = (responseCard.genericAttachments[0].buttons) ? responseCard.genericAttachments[0].buttons : "" ;
+        const url = (responseCard.genericAttachments[0].imageUrl) ? responseCard.genericAttachments[0].imageUrl : "";
+        
+        this.setState({
+            // @ts-ignore
+            dialog: [
+                ...this.state.dialog,
+                // @ts-ignore
+                responseCard && { from: 'bot', title: title, subTitle: subTitle, buttons: buttons, url: url, messageFormat: "ResponseCard" },
+            ],
+            inputText: '',
+        }); 
     }
 
     async changeInputText(event) {

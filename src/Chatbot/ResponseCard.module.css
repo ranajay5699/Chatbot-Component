@@ -1,0 +1,11 @@
+.Card{    
+    border-radius: 3px;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    max-width: 400px;
+    color: initial;
+}
+
+.subtitle{
+    font-size: small;
+}

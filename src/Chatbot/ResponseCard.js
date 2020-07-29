@@ -1,24 +1,35 @@
 import React from 'react';
 import {
-  Card, CardImg, CardText, CardBody,
+  Card, CardImg, CardBody,
   CardTitle, CardSubtitle, Button
 } from 'reactstrap';
+import style from './ResponseCard.module.css';
 
 const ResponseCard = (props) => {
-    console.log(props.buttons)
+    const buttonHandler = async (event) => {
+        props.handler(event.target.value);
+    }
+    
     const buttons = props.buttons.map((m,i) => {
-        return (<Button>m.text</Button>);
+        return (
+                <div key={i}>
+                    <Button onClick={buttonHandler} style={{minWidth:"200px"}} value={m.value}>
+                        {m.text}
+                    </Button><p />
+                </div>
+                );
     });
+
     return (
-        <div>
-        <Card>
-            <CardImg top width="100%" src={props.imageUrl} />
-            <CardBody>
-                <CardTitle>{props.title}</CardTitle>
-                <CardSubtitle>{props.subtitle}</CardSubtitle>
-                {buttons}
-            </CardBody>
-        </Card>
+        <div className={style.Card}>
+            <Card>
+                <CardImg top width="100%" src={props.imageUrl} />
+                <CardBody className="text-center">
+                    <CardTitle>{props.title}</CardTitle>
+                    <CardSubtitle className={style.subtitle}>{props.subtitle}</CardSubtitle>
+                    {buttons}
+                </CardBody>
+            </Card>
         </div>
     );
 };
