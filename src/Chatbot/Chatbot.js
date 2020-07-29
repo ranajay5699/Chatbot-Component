@@ -409,7 +409,7 @@ class ChatBot extends React.Component{
                 'No Interactions module found, please ensure @aws-amplify/interactions is imported'
             );
         }
-        
+
         const response = await Interactions.send(
             this.props.botName,
             input
@@ -504,7 +504,6 @@ class ChatBot extends React.Component{
 
     componentDidMount() {
         const { onComplete, botName } = this.props;
-        console.log("ComponentDid")
         if (onComplete && botName) {
             if (!Interactions || typeof Interactions.onComplete !== 'function') {
                 throw new Error(
@@ -514,6 +513,14 @@ class ChatBot extends React.Component{
             // @ts-ignore
             Interactions.onComplete(botName, this.getOnComplete(onComplete, this));
         }
+        
+        //Check for cookie of previous session
+        // const cookie = this.getCookie("gibby");
+        // if(botName && cookie !== ""){
+        //     const input = null
+        //     //Parse through cookie and send to ReturnUser Intent 
+        //     this.submit("RetUser"+input)
+        // }
     }
 
     componentDidUpdate(prevProps) {
