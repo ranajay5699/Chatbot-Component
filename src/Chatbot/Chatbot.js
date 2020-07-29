@@ -4,6 +4,7 @@ import {
     SectionHeader,
     SectionBody,
     SectionFooter,
+    NavRight,
 } from 'aws-amplify-react/lib-esm';
 import { Input, Button } from 'aws-amplify-react/lib-esm/AmplifyTheme';
 
@@ -11,23 +12,24 @@ import { I18n } from '@aws-amplify/core';
 import { Interactions } from '@aws-amplify/interactions';
 import { ConsoleLogger as Logger } from '@aws-amplify/core';
 import { chatBot } from 'aws-amplify-react/lib-esm/Amplify-UI/data-test-attributes';
+import ResponseCard from './ResponseCard';
 const logger = new Logger('ChatBot');
 
 // @ts-ignore
 const styles = {
     itemMe: {
         padding: 10,
-        fontSize: 12,
+        fontSize: 15,
         color: 'gray',
         marginTop: 4,
-        textAlign: 'right',
+        textAlign: 'right', 
     },
     itemBot: {
-        fontSize: 12,
+        fontSize: 15,
         textAlign: 'left',
     },
     list: {
-        height: '300px',
+        height: '100%',
         overflow: 'auto',
     },
     textInput: Object.assign({}, Input, {
@@ -112,7 +114,10 @@ class ChatBot extends React.Component{
 		this.listItemsRef = React.createRef();
 		this.onSilenceHandler = this.onSilenceHandler.bind(this);
 		this.doneSpeakingHandler = this.doneSpeakingHandler.bind(this);
-		this.lexResponseHandler = this.lexResponseHandler.bind(this);
+        this.lexResponseHandler = this.lexResponseHandler.bind(this);
+        this.lexMessageGroup = this.lexMessageGroup.bind(this);
+        this.setCookie = this.setCookie.bind(this);
+        this.getCookie = this.getCookie.bind(this);
     }
     
     async micButtonHandler() {
@@ -263,6 +268,7 @@ class ChatBot extends React.Component{
     }
 
     listItems() {
+
         return this.state.dialog.map((m, i) => {
             if (m.from === 'me') {
                 return (
@@ -284,16 +290,48 @@ class ChatBot extends React.Component{
                         {m.message}
                     </div>
                 );
+            //From Bot
             } else {
-                return (
-                    <div
-                        key={i}
-                        style={styles.itemBot}
-                        data-test={`${chatBot.dialog}-${i}`}
-                    >
-                        {m.message}
-                    </div>
-                );
+                if(m.messageFormat === "CustomPayload"){
+                    const [message, title, URL] = m.message.split(";");
+                    console.log(message,title,URL);
+                    return (
+                        <div
+                            key={i}
+                            style={styles.itemBot}
+                            data-test={`${chatBot.dialog}-${i}`}
+                        >
+                            {message}<br />
+                            <a href={URL}>{title}</a>
+                        </div>
+                    );
+                }else if(m.messageFormat === "ResponseCard"){
+                    return (
+                        <div
+                            key={i}
+                            // style={styles.itemBot}
+                            data-test={`${chatBot.dialog}-${i}`}
+                        >
+                            <ResponseCard               
+                                title = {m.title}
+                                subtitle = {m.subTitle}
+                                imageUrl = {m.url}
+                                buttons = {m.buttons}    
+                            />
+                        </div>
+                    );
+                }else{
+                    return (
+                        <div
+                            key={i}
+                            style={styles.itemBot}
+                            data-test={`${chatBot.dialog}-${i}`}
+                        >
+                            {m.message}
+                        </div>
+                    );
+                }
+                
             }
         });
     }
@@ -325,18 +363,64 @@ class ChatBot extends React.Component{
             this.props.botName,
             this.state.inputText
         );
-        console.log(response)
 
-        this.setState({
+        if(response.sessionAttributes !== undefined){
+            //Check setcookie sessionattribute here and setcookie
+            console.log(response.sessionAttributes);
+        }
+
+        //Message Group Support
+        if (response.messageFormat === "Composite"){
+            this.lexMessageGroup(response)
+        }
+        else{
+           this.setState({
             // @ts-ignore
             dialog: [
                 ...this.state.dialog,
                 // @ts-ignore
-                response && { from: 'bot', message: response.message },
+                response && { from: 'bot', message: response.message, messageFormat: response.messageFormat },
             ],
             inputText: '',
         });
+        
+        if (response.responseCard !== undefined){
+            const title = (response.responseCard.genericAttachments[0].title) ? response.responseCard.genericAttachments[0].title : "";
+            const subTitle = (response.responseCard.genericAttachments[0].subTitle) ? response.responseCard.genericAttachments[0].subTitle : "" ;
+            const buttons = (response.responseCard.genericAttachments[0].buttons) ? response.responseCard.genericAttachments[0].buttons : "" ;
+            const url = (response.responseCard.genericAttachments[0].imageUrl) ? response.responseCard.genericAttachments[0].imageUrl : "";
+            
+            this.setState({
+                // @ts-ignore
+                dialog: [
+                    ...this.state.dialog,
+                    // @ts-ignore
+                    response && { from: 'bot', title: title, subTitle: subTitle, buttons: buttons, url: url, messageFormat: "ResponseCard" },
+                ],
+                inputText: '',
+            }); 
+        }
+         
+        }
+        
         this.listItemsRef.current.scrollTop = this.listItemsRef.current.scrollHeight;
+    }
+
+    lexMessageGroup(response){
+        const msgGrpJSON = JSON.parse(unescape(response.message));
+        const responseGrp = msgGrpJSON.messages;
+        responseGrp.forEach(msg => {
+            this.setState({
+                // @ts-ignore
+                dialog: [
+                    ...this.state.dialog,
+                    // @ts-ignore
+                    msg && { from: 'bot', message: msg.value, messageFormat: msg.type },
+                ],
+                inputText: '',
+            }); 
+        });
+        return
     }
 
     async changeInputText(event) {
@@ -364,7 +448,7 @@ class ChatBot extends React.Component{
 
     componentDidMount() {
         const { onComplete, botName } = this.props;
-
+        console.log("ComponentDid")
         if (onComplete && botName) {
             if (!Interactions || typeof Interactions.onComplete !== 'function') {
                 throw new Error(
@@ -390,37 +474,61 @@ class ChatBot extends React.Component{
         }
     }
 
+    getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+          }
+          if (c.indexOf(name) === 0) {
+            return c.substring(name.length, c.length);
+          }
+        }
+        return "";
+      }
+
+    setCookie(name, value, exp) {
+        var d = new Date(exp);
+        var expires = "expires="+ d.toUTCString();
+        document.cookie = name + "=" + JSON.stringify(value) + ";" + expires + ";path=/";
+    }
+
     render() {
         const { title, theme, onComplete } = this.props;
 
         return (
-            <FormSection theme={theme}>
-                {title && (
-                    <SectionHeader theme={theme} data-test={chatBot.title}>
-                        {I18n.get(title)}
-                    </SectionHeader>
-                )}
-                <SectionBody theme={theme}>
-                    <div ref={this.listItemsRef} style={styles.list}>
-                        {this.listItems()}
-                    </div>
-                </SectionBody>
-                <SectionFooter theme={theme}>
-                    <ChatBotInputs
-                        micText={this.state.micText}
-                        voiceEnabled={this.props.voiceEnabled}
-                        textEnabled={this.props.textEnabled}
-                        styles={styles}
-                        onChange={this.changeInputText}
-                        inputText={this.state.inputText}
-                        onSubmit={this.submit}
-                        inputDisabled={this.state.inputDisabled}
-                        micButtonDisabled={this.state.micButtonDisabled}
-                        handleMicButton={this.micButtonHandler}
-                        currentVoiceState={this.state.currentVoiceState}
-                    />
-                </SectionFooter>
-            </FormSection>
+            <div>
+                <FormSection theme={theme}>
+                    {title && (
+                        <SectionHeader theme={theme} data-test={chatBot.title}>
+                            {I18n.get(title)}
+                        </SectionHeader>
+                    )}
+                    <SectionBody theme={theme}>
+                        <div ref={this.listItemsRef} style={styles.list}>
+                            {this.listItems()}
+                        </div>
+                    </SectionBody>
+                    <SectionFooter theme={theme}>
+                        <ChatBotInputs
+                            micText={this.state.micText}
+                            voiceEnabled={this.props.voiceEnabled}
+                            textEnabled={this.props.textEnabled}
+                            styles={styles}
+                            onChange={this.changeInputText}
+                            inputText={this.state.inputText}
+                            onSubmit={this.submit}
+                            inputDisabled={this.state.inputDisabled}
+                            micButtonDisabled={this.state.micButtonDisabled}
+                            handleMicButton={this.micButtonHandler}
+                            currentVoiceState={this.state.currentVoiceState}
+                        />
+                    </SectionFooter>
+                </FormSection>
+            </div>
         );
     }
 }
