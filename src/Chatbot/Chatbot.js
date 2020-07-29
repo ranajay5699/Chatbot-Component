@@ -311,7 +311,7 @@ class ChatBot extends React.Component{
                             data-test={`${chatBot.dialog}-${i}`}
                         >
                             {message}<br />
-                            <a href={URL}>{title}</a>
+                            <a target="_blank" href={URL}>{title}</a>
                         </div>
                     );
                 }else if(m.messageFormat === "ResponseCard"){
@@ -513,7 +513,7 @@ class ChatBot extends React.Component{
             // @ts-ignore
             Interactions.onComplete(botName, this.getOnComplete(onComplete, this));
         }
-        
+
         //Check for cookie of previous session
         // const cookie = this.getCookie("gibby");
         // if(botName && cookie !== ""){
